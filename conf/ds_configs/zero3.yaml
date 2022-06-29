@@ -15,6 +15,6 @@ zero_optimization:
   sub_group_size: 1e9
   stage3_max_live_parameters: 1e9
   stage3_max_reuse_distance: 1e9
-steps_per_print: 2000,
+steps_per_print: 2000
 train_micro_batch_size_per_gpu: 2
 wall_clock_breakdown: false

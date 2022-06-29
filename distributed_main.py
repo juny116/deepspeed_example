@@ -111,13 +111,13 @@ def main(config: DictConfig) -> None:
     logger.info(f'Total time for loading model : {model_loading_end - model_loading_start} sec.')
 
     # Preprocessing the datasets
-
     def preprocess_function(examples):
         # Tokenize the texts
-        texts = (
-            (examples[config['datasets']['sentence1_key']],) if config['datasets']['sentence2_key'] is None else (examples[config['datasets']['sentence1_key']], examples[config['datasets']['sentence2_key']])
-        )
-        result = tokenizer(*texts, padding=config['padding'], max_length=config['max_length'], truncation=True)
+        result = {}
+        texts = examples[config['datasets']['sentence1_key']] if config['datasets']['sentence2_key'] is None else examples[config['datasets']['sentence1_key']] + '\n' + examples[config['datasets']['sentence2_key']]
+        
+        result['inputs'] = texts
+        # result = tokenizer(*texts, padding=config['padding'], max_length=config['max_length'], truncation=True)
         result["labels"] = examples["label"]
 
         return result
@@ -128,7 +128,6 @@ def main(config: DictConfig) -> None:
         torch.distributed.barrier()
     processed_datasets = raw_datasets.map(
         preprocess_function,
-        batched=True,
         remove_columns=raw_datasets["train"].column_names,
         desc="Running tokenizer on dataset",
     )
@@ -137,7 +136,6 @@ def main(config: DictConfig) -> None:
 
     train_dataset = processed_datasets["train"]
     test_dataset = processed_datasets["validation"]
-
     batch_size = ds_config['train_micro_batch_size_per_gpu']
 
     # Evaluate! 
@@ -161,7 +159,11 @@ def main(config: DictConfig) -> None:
         logger.info(f"Epoch {epoch}: START Training")
         progressbar = tqdm(range(len(train_dataloader)))
         for step, batch in enumerate(train_dataloader):
-            loss, predictions = model_engine(**batch)
+            # to local device
+            inputs = tokenizer(batch['inputs'], padding=config['padding'], max_length=config['max_length'], return_tensors='pt').to(device=local_rank)
+            inputs['labels'] = torch.Tensor(batch['labels']).to(device=local_rank)
+            # batch = {k:v.to(local_rank) for k, v in batch.items()}
+            loss, predictions = model_engine(**inputs)
 
             model_engine.backward(loss)
             model_engine.step()
@@ -177,8 +179,10 @@ def main(config: DictConfig) -> None:
         model_engine.module.eval()
         progressbar = tqdm(range(len(test_dataloader)))
         for step, batch in enumerate(train_dataloader):
+            inputs = tokenizer(batch['inputs'], padding=config['padding'], max_length=config['max_length'], return_tensors='pt').to(device=local_rank)
+            inputs['labels'] = torch.Tensor(batch['labels']).to(device=local_rank)
             with torch.no_grad():
-                loss, predictions = model_engine(**batch)
+                loss, predictions = model_engine(**inputs)
 
             metric.add_batch(predictions=predictions, references=batch['labels'])
             progressbar.update(1)

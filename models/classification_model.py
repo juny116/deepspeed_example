@@ -18,8 +18,8 @@ class ClassificationModel(torch.nn.Module):
         classifier_dropout = (
             config['classifier_dropout'] if config.get('classifier_dropout') is not None else 0
         )
-        self.dropout = torch.nn.Dropout(classifier_dropout).to(self.transformer.dtype)
-        self.classifier = torch.nn.Linear(config.hidden_size, self.num_labels).to(self.transformer.dtype)
+        self.dropout = torch.nn.Dropout(classifier_dropout).to(dtype=self.transformer.dtype)
+        self.classifier = torch.nn.Linear(config.hidden_size, self.num_labels).to(dtype=self.transformer.dtype)
 
     def forward(
         self,
@@ -49,7 +49,7 @@ class ClassificationModel(torch.nn.Module):
             return_dict=return_dict,
         )
         last_hidden_state = outputs.last_hidden_state
-
+        
         # get the index of the final representation
         sequence_lengths = torch.ne(attention_mask, 0).sum(-1) - 1
 
@@ -62,6 +62,6 @@ class ClassificationModel(torch.nn.Module):
         loss_fct = torch.nn.CrossEntropyLoss()
         loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
                 
-        predictions = torch.argmax(logits, dim=1)
+        predictions = torch.argmax(logits, dim=1).tolist()
 
         return loss, predictions
