@@ -1,0 +1,12 @@
+# Install torch version in that matches your env
+# --extra-index-url https://download.pytorch.org/whl/cu113
+torch
+# Check README for details in installing deepspeed
+# deepspeed
+transformers
+hydra-core
+datasets
+tqdm
+scipy
+sklearn
+tensorboard
