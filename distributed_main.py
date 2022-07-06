@@ -178,7 +178,7 @@ def main(config: DictConfig) -> None:
         logger.info(f"Epoch {epoch}: START Evaluation")
         model_engine.module.eval()
         progressbar = tqdm(range(len(test_dataloader)))
-        for step, batch in enumerate(train_dataloader):
+        for step, batch in enumerate(test_dataloader):
             inputs = tokenizer(batch['inputs'], padding=config['padding'], max_length=config['max_length'], return_tensors='pt').to(device=local_rank)
             inputs['labels'] = torch.Tensor(batch['labels']).to(device=local_rank)
             with torch.no_grad():
@@ -191,7 +191,7 @@ def main(config: DictConfig) -> None:
         if local_rank == 0:
             logger.info(f"Epoch {epoch}: Evaluation accuracy {result['accuracy'] * 100}")
         #save checkpoint
-        model_engine.save_checkpoint(config['save_dir'], epoch)
+        model_engine.save_checkpoint(config['save_path'], epoch)
    
     end_time = time.time()
     logger.info(f'Total runtime : {end_time - start_time} sec.')

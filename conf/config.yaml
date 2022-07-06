@@ -14,5 +14,5 @@ hydra:
 defaults:
   - models: gpt-j
   - datasets: sst2
-  - ds_configs: single
+  - ds_configs: zero3
   - _self_
